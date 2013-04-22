@@ -8,9 +8,15 @@ found on MLSSoccer.com. For example, see this [Fire vs Columbus Recap](http://ww
 
 This script relies on:
 
-    * requests
-    * beautifulsoup
+* requests
+* beautifulsoup
 
 Just run like so:
 
     python mls_scraper.py http://www.mlssoccer.com/matchcenter/2013-04-20-CHI-v-CLB/stats
+
+TODO:
+
+* Parse game events
+* Map abbreviations to team names
+* Determine what I'm making this scraper for
