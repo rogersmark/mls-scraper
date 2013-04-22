@@ -184,21 +184,6 @@ class GameStatSet(object):
         return self.__unicode__()
 
 
-def digest_stats(soup):
-    stats_table = soup.find(id='stats-game')
-    header = stats_table.findNext('tr')
-    team_one_stats = {'name': header.findChildren()[0].text}
-    team_two_stats = {'name': header.findChildren()[-1].text}
-    stats_row = header.findNext('tr')
-    while stats_row:
-        stat_title = stats_row.findChildren()[1].text
-        team_one_stats[stat_title] = stats_row.findChildren()[0].text
-        team_two_stats[stat_title] = stats_row.findChildren()[-1].text
-        stats_row = stats_row.findNext('tr')
-    print team_one_stats
-    print team_two_stats
-
-
 def main(urls):
     for url in urls:
         match = GameStatSet(url)
