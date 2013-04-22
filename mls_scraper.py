@@ -32,6 +32,29 @@ class GameStatSet(object):
     home_team = None
     away_team = None
     stat_url = None
+    goals = []
+    disciplinary_events = []
+    abbreviation_map = {
+        'CHI': 'Chicago Fire',
+        'CHV': 'Chivas USA',
+        'CLB': 'Columbus Crew',
+        'COL': 'Colorado Rapids',
+        'DAL': 'FC Dallas',
+        'DC': 'D.C. United',
+        'HOU': 'Houston Dynamo',
+        'LA': 'LA Galaxy',
+        'MON': 'Montreal Impact',
+        'NY': 'New York Red Bulls',
+        'NE': 'New England Revolution',
+        'PHI': 'Philadelphia Union',
+        'POR': 'Portland Timbers',
+        'RSL': 'Real Salt Lake',
+        'SEA': 'Seattle Sounders',
+        'SJ': 'San Jose Earthquakes',
+        'SKC': 'Sporting Kansas City',
+        'TOR': 'Toronto FC',
+        'VAN': 'Vancouver Whitecaps FC',
+    }
 
     def __init__(self, stat_url, home_team=None, away_team=None):
         self.stat_url = stat_url
@@ -164,6 +187,17 @@ class GameStatSet(object):
         self.home_team.players.extend(home_subs)
         self.away_team.keepers.extend(away_subs)
 
+    def _process_goals(self):
+        ''' Process the Goals div which has an id of "goals" '''
+        goals_div = self.stat_html.find('div', {'id': 'goals'})
+        goals = self._parse_stat_table(goals_div)
+        self.goals = goals
+
+    def _process_disciplinary_actions(self):
+        disciplinary_div = self.stat_html.find('div', {'id': 'disciplinary'})
+        events = self._parse_stat_table(disciplinary_div)
+        self.disciplinary_events = events
+
     def _generate_stats(self):
         print "processing header"
         self._process_header()
@@ -175,6 +209,10 @@ class GameStatSet(object):
         self._process_keepers()
         print "processing subs"
         self._process_subs()
+        print "process goals"
+        self._process_goals()
+        print "processing disciplinary actions"
+        self._process_disciplinary_actions()
         print "finished processing %s" % self.stat_url
 
     def __unicode__(self):
@@ -189,6 +227,8 @@ def main(urls):
         match = GameStatSet(url)
         print match.home_team.players
         print match.away_team.players
+        print match.goals
+        print match.disciplinary_events
         print match
 
 
