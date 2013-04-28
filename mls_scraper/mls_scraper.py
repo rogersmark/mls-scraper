@@ -1,6 +1,7 @@
 import re
 import sys
 import itertools
+from datetime import datetime
 from optparse import OptionParser
 
 import requests
@@ -34,6 +35,7 @@ class GameStatSet(object):
     stat_url = None
     goals = []
     disciplinary_events = []
+    game_date = None
     abbreviation_map = {
         'CHI': 'Chicago Fire',
         'CHV': 'Chivas USA',
@@ -44,6 +46,7 @@ class GameStatSet(object):
         'HOU': 'Houston Dynamo',
         'LA': 'LA Galaxy',
         'MON': 'Montreal Impact',
+        'MTL': 'Montreal Impact', # Sometimes its MON, others its MTL
         'NY': 'New York Red Bulls',
         'NE': 'New England Revolution',
         'PHI': 'Philadelphia Union',
@@ -52,27 +55,34 @@ class GameStatSet(object):
         'SEA': 'Seattle Sounders',
         'SJ': 'San Jose Earthquakes',
         'SKC': 'Sporting Kansas City',
+        'KC': 'Sporting Kansas City', # Sometimes its KC, others its SKC
         'TOR': 'Toronto FC',
         'VAN': 'Vancouver Whitecaps FC',
     }
 
-    def __init__(self, stat_url, home_team=None, away_team=None):
+    def __init__(self, stat_url=None, home_team=None, away_team=None):
         self.stat_url = stat_url
         self.stat_html = None
         self.home_team = home_team if home_team else Team()
         self.away_team = away_team if away_team else Team()
-        self._load_stat_html()
-        self._generate_stats()
+        if self.stat_url:
+            self._load_stat_html()
+            self._generate_stats()
 
     def _load_stat_html(self):
         try:
             resp = requests.get(self.stat_url)
+            if resp.url.endswith('recap'):
+                self.stat_url = resp.url.replace('recap', 'stats')
+                resp = requests.get(self.stat_url)
         except requests.RequestException:
             print "Unable to load URL"
             raise
 
         if not resp.status_code == 200:
             print "Improper status code: %s" % resp.status_code
+            raise requests.RequestException(
+                'MLS returned a %s status code' % resp.status_code)
 
         self.stat_html = BeautifulSoup(resp.content)
 
@@ -82,16 +92,27 @@ class GameStatSet(object):
             'div', {'class': 'home-team-title'}).text
         self.away_team.name = self.stat_html.find(
             'div', {'class': 'away-team-title'}).text
+        time_str = '%s %s' % (
+            self.stat_html.find('div', {'class': 'game-data-date'}).text,
+            self.stat_html.find(
+                'div', {'class': 'game-data-timezone'}).text.split()[0]
+        )
+        self.game_date = datetime.strptime(time_str, '%B %d, %Y %I:%M%p')
 
     def _process_team_stats(self):
         ''' Process the Team Stats table with the "stats-game" id '''
         stats_table = self.stat_html.find(id='stats-game')
         stats_row = stats_table.findNext('tr').findNext('tr')
+        home_stats = {}
+        away_stats = {}
         while stats_row:
             stat_title = stats_row.findChildren()[1].text
-            self.home_team.stats[stat_title] = stats_row.findChildren()[0].text
-            self.away_team.stats[stat_title] = stats_row.findChildren()[-1].text
+            home_stats[stat_title] = stats_row.findChildren()[0].text
+            away_stats[stat_title] = stats_row.findChildren()[-1].text
             stats_row = stats_row.findNext('tr')
+
+        self.home_team.stats = home_stats
+        self.away_team.stats = away_stats
 
     def _parse_stat_table(self, table):
         ''' Takes a stats table, and processes its children '''
@@ -108,10 +129,19 @@ class GameStatSet(object):
             player = {}
             offset = 0
             for count, child in enumerate(player_row.findChildren()):
+                # dirty hack to get card colors
+                try:
+                    class_name = child.findChild().attrMap.get('class')
+                    if class_name in ('timeline-red', 'timeline-yellow'):
+                        player['card_color'] = class_name.split('-')[-1]
+                except AttributeError:
+                    pass
+
                 if not child.text:
                     # Skip empty rows, increment offset to account for empties
                     offset += 1
                     continue
+
                 try:
                     player[stat_key[count - offset]] = child.text
                 except IndexError:
@@ -199,21 +229,13 @@ class GameStatSet(object):
         self.disciplinary_events = events
 
     def _generate_stats(self):
-        print "processing header"
         self._process_header()
-        print "processing team stats"
         self._process_team_stats()
-        print "processing starters"
         self._process_starters()
-        print "processing keepers"
         self._process_keepers()
-        print "processing subs"
         self._process_subs()
-        print "process goals"
         self._process_goals()
-        print "processing disciplinary actions"
         self._process_disciplinary_actions()
-        print "finished processing %s" % self.stat_url
 
     def __unicode__(self):
         return u'%s - %s' % (self.home_team, self.away_team)
