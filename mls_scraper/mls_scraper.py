@@ -52,7 +52,7 @@ class GameStatSet(object):
         'PHI': 'Philadelphia Union',
         'POR': 'Portland Timbers',
         'RSL': 'Real Salt Lake',
-        'SEA': 'Seattle Sounders',
+        'SEA': 'Seattle Sounders FC',
         'SJ': 'San Jose Earthquakes',
         'SKC': 'Sporting Kansas City',
         'KC': 'Sporting Kansas City', # Sometimes its KC, others its SKC
