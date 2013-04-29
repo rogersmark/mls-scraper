@@ -10,6 +10,7 @@ This script relies on:
 
 * requests
 * beautifulsoup
+* mock
 
 Just run like so:
 
