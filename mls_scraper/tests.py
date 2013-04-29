@@ -1,3 +1,6 @@
+#!/usr/local/bin/env python
+# -*- coding: utf-8 -*-
+
 import unittest
 import os
 
@@ -5,6 +8,7 @@ from mock import Mock
 from BeautifulSoup import BeautifulSoup
 
 import mls_scraper
+import formation
 
 
 class TestMLSScraper(unittest.TestCase):
@@ -97,5 +101,44 @@ class TestMLSScraper(unittest.TestCase):
         assert self.game.disciplinary_events
         self.assertEqual(len(self.game.disciplinary_events), 3)
 
+
+# Test formations.
+# This is the relevant block of html.
+#  <h2>Starting Formations</h2>
+#  <div class="formations">
+#    <div class="home formation-4231">
+#      <div class="formation-row row-1 length-4"><span class="player no-9"><strong>11</strong>Darren Mattocks</span><span class="stretch"></span></div><div class="formation-row row-3 length-4"><span class="player no-11"><strong>7</strong>Camilo Da Silva Sanvezzo</span><span class="player no-10"><strong>28</strong>Gershon Koffie</span><span class="player no-7"><strong>14</strong>Daigo Kobayashi</span><span class="stretch"></span></div><div class="formation-row row-2 length-4"><span class="player no-4"><strong>27</strong>Jun Marques Davidson</span><span class="player no-8"><strong>13</strong>Nigel Reo-Coker</span><span class="stretch"></span></div><div class="formation-row row-4 length-4"><span class="player no-3"><strong>4</strong>Alain Rochat</span><span class="player no-6"><strong>3</strong>Brad Rusin</span><span class="player no-5"><strong>40</strong>Andy O'Brien</span><span class="player no-2"><strong>12</strong>Lee Young-Pyo</span><span class="stretch"></span></div><div class="keeper"><span class="player no-1"><strong>1</strong>Joe Cannon</span></div>      <div class="current_formation">4-2-3-1 formation</div>    </div>
+#    <div class="away formation-4231">
+#      <div class="formation-row row-1 length-4"><span class="player no-9"><strong>7</strong>Blas Pérez</span><span class="stretch"></span></div><div class="formation-row row-3 length-4"><span class="player no-11"><strong>6</strong>Jackson</span><span class="player no-10"><strong>10</strong>David Ferreira</span><span class="player no-7"><strong>33</strong>Kenny Cooper</span><span class="stretch"></span></div><div class="formation-row row-2 length-4"><span class="player no-4"><strong>31</strong>Michel</span><span class="player no-8"><strong>4</strong>Andrew Jacobson</span><span class="stretch"></span></div><div class="formation-row row-4 length-4"><span class="player no-3"><strong>5</strong>Jair Benitez</span><span class="player no-6"><strong>24</strong>Matt Hedges</span><span class="player no-5"><strong>14</strong>George John</span><span class="player no-2"><strong>17</strong>Zach Loyd</span><span class="stretch"></span></div><div class="keeper"><span class="player no-1"><strong>1</strong>Raúl Fernández</span></div>      <div class="current_formation">4-2-3-1 formation</div>    </div>
+#  </div>
+#</div>
+
+class TestFormationScraper(unittest.TestCase):
+
+    def setUp(self):
+        super(TestFormationScraper, self).setUp()
+        html = open(os.path.join(os.path.dirname(__file__), 'test_formation.html')).read()
+        self.formations = formation.parse_formation_html(html)
+
+    def tearDown(self):
+        super(TestFormationScraper, self).tearDown()
+
+    def test_home(self):
+        h = self.formations['home']
+        assert len(h) == 5
+        assert h[0][0] == 'Joe Cannon'
+        assert h[-1][0] == 'Darren Mattocks'
+        assert h[1] == ['Alain Rochat', 'Brad Rusin', 'Andy O\'Brien', 'Lee Young-Pyo']
+
+
+    def test_away(self):
+        a = self.formations['away']
+        print a
+        assert a[1] == [u'Jair Benitez', u'Matt Hedges', u'George John', u'Zach Loyd']
+        assert a[2] == [u'Michel', u'Andrew Jacobson']
+        assert a[3] == [u'Jackson', u'David Ferreira', u'Kenny Cooper']
+
 if __name__ == '__main__':
     unittest.main()
+
+
