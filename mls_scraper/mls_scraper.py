@@ -141,7 +141,9 @@ class GameStatSet(object):
                 # dirty hack to get card colors
                 try:
                     class_name = child.findChild().attrMap.get('class')
-                    if class_name in ('timeline-red', 'timeline-yellow'):
+                    if class_name in (
+                            'timeline-red', 'timeline-yellow',
+                            'timeline-second-yellow'):
                         player['card_color'] = class_name.split('-')[-1]
                 except AttributeError:
                     pass
