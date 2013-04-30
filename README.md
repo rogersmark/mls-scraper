@@ -10,13 +10,11 @@ This script relies on:
 
 * requests
 * beautifulsoup
+* mock
 
 Just run like so:
 
     python mls_scraper.py http://www.mlssoccer.com/matchcenter/2013-04-20-CHI-v-CLB/stats
 
-TODO:
-
-* Parse game events
-* Map abbreviations to team names
-* Determine what I'm making this scraper for
+If you'd like to store the data this retrieves, I recommend taking a look at
+my [mls-api](https://github.com/f4nt/mls-api) project.
