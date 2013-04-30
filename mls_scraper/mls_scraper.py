@@ -1,6 +1,7 @@
 import re
 import sys
 import itertools
+import logging
 from datetime import datetime
 from optparse import OptionParser
 
@@ -60,11 +61,19 @@ class GameStatSet(object):
         'VAN': 'Vancouver Whitecaps FC',
     }
 
-    def __init__(self, stat_url=None, home_team=None, away_team=None):
+    def __init__(self, stat_url=None, home_team=None,
+                 away_team=None, logger=None, log_level=logging.INFO):
         self.stat_url = stat_url
         self.stat_html = None
         self.home_team = home_team if home_team else Team()
         self.away_team = away_team if away_team else Team()
+        self.logger = logger
+        if not self.logger:
+            logging.basicConfig(
+                filename='scraper.log',
+                level=log_level
+            )
+            self.logger = logging
         if self.stat_url:
             self._load_stat_html()
             self._generate_stats()
@@ -76,11 +85,11 @@ class GameStatSet(object):
                 self.stat_url = resp.url.replace('recap', 'stats')
                 resp = requests.get(self.stat_url)
         except requests.RequestException:
-            print "Unable to load URL"
+            self.logger.exception("Unable to load URL")
             raise
 
         if not resp.status_code == 200:
-            print "Improper status code: %s" % resp.status_code
+            self.logger.error('Improper status code: %s', resp.status_code)
             raise requests.RequestException(
                 'MLS returned a %s status code' % resp.status_code)
 
@@ -145,8 +154,10 @@ class GameStatSet(object):
                 try:
                     player[stat_key[count - offset]] = child.text
                 except IndexError:
-                    print count
-                    print len(stat_key)
+                    # See these occasionally, still tracking the cause
+                    self.logger.info('IndexError in _parse_stat_table')
+                    self.logger.info('Index count: %s', count)
+                    self.logger.info('Key: %s' % stat_key)
 
             stats.append(player)
             player_row = player_row.findNext('tr')
@@ -168,7 +179,7 @@ class GameStatSet(object):
                 away_table = table
 
         if not away_table and not home_table:
-            print 'Unable to parse starters'
+            self.logger.error('Unable to parse starters')
 
         self.home_team.players = self._parse_stat_table(home_table)
         self.away_team.players = self._parse_stat_table(away_table)
@@ -188,7 +199,7 @@ class GameStatSet(object):
                 away_table = table
 
         if not away_table and not home_table:
-            print 'Unable to parse starters'
+            self.logger.error('Unable to parse keepers')
 
         home_keepers = self._parse_stat_table(home_table)
         away_keepers = self._parse_stat_table(away_table)
@@ -210,7 +221,7 @@ class GameStatSet(object):
                 away_table = table
 
         if not away_table and not home_table:
-            print 'Unable to parse starters'
+            self.logger.error('Unable to parse subs')
 
         home_subs = self._parse_stat_table(home_table)
         away_subs = self._parse_stat_table(away_table)
@@ -229,13 +240,21 @@ class GameStatSet(object):
         self.disciplinary_events = events
 
     def _generate_stats(self):
+        self.logger.info('Starting to process %s', self.stat_url)
         self._process_header()
+        self.logger.info('Processed headers')
         self._process_team_stats()
+        self.logger.info('Processed team stats')
         self._process_starters()
+        self.logger.info('Processed starters')
         self._process_keepers()
+        self.logger.info('Processed keepers')
         self._process_subs()
+        self.logger.info('Processed subs')
         self._process_goals()
+        self.logger.info('Processed goals')
         self._process_disciplinary_actions()
+        self.logger.info('Processed bookings')
 
     def __unicode__(self):
         return u'%s - %s' % (self.home_team, self.away_team)
