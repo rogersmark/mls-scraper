@@ -24,6 +24,7 @@ class TestMLSScraper(unittest.TestCase):
 
     def tearDown(self):
         mls_scraper.requests = self.orig_requests
+        self.game = None
         super(TestMLSScraper, self).tearDown()
 
     def _create_requests_mock_return(self, url='http://www.example.com/stats',
@@ -83,11 +84,33 @@ class TestMLSScraper(unittest.TestCase):
 
     def test_process_subs(self):
         self._load_stats()
+
         self.game._process_subs()
         assert self.game.home_team.players
         assert self.game.away_team.players
+
         self.assertEqual(len(self.game.home_team.players), 3)
         self.assertEqual(len(self.game.away_team.players), 3)
+
+    def test_process_subs_puts_correct_players_on_home_team(self):
+        self._load_stats()
+        self.game._process_subs()
+        assert self.game.home_team.players
+        assert self.game.away_team.players
+
+        amarikwa_sub = [player for player in self.game.home_team.players
+                        if player['Player'] == 'Quincy Amarikwa']
+        self.assertTrue(len(amarikwa_sub) > 0)
+
+    def test_process_subs_puts_correct_players_on_away_team(self):
+        self._load_stats()
+        self.game._process_subs()
+        assert self.game.home_team.players
+        assert self.game.away_team.players
+
+        correa_sub = [player for player in self.game.away_team.players
+                      if player['Player'] == 'Jose Correa']
+        self.assertTrue(len(correa_sub) > 0)
 
     def test_process_goals(self):
         self._load_stats()
