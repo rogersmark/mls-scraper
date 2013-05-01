@@ -16,11 +16,22 @@ class Team(object):
     keepers = []
     stats = {}
 
-    def __init__(self, name=None, players=[], keepers=[], stats={}):
+    def __init__(self, name=None, players=None, keepers=None, stats=None):
         self.name = name
-        self.players = players
-        self.keepers = keepers
-        self.stats = stats
+        if self.players:
+            self.players = players
+        else:
+            self.players = []
+
+        if self.keepers:
+            self.keepers = keepers
+        else:
+            self.keepers = []
+
+        if self.stats:
+            self.stats = stats
+        else:
+            self.stats = {}
 
     def __unicode__(self):
         return u'%s' % self.name
@@ -227,8 +238,9 @@ class GameStatSet(object):
 
         home_subs = self._parse_stat_table(home_table)
         away_subs = self._parse_stat_table(away_table)
+
         self.home_team.players.extend(home_subs)
-        self.away_team.keepers.extend(away_subs)
+        self.away_team.players.extend(away_subs)
 
     def _process_goals(self):
         ''' Process the Goals div which has an id of "goals" '''
