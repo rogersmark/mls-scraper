@@ -18,20 +18,10 @@ class Team(object):
 
     def __init__(self, name=None, players=None, keepers=None, stats=None):
         self.name = name
-        if self.players:
-            self.players = players
-        else:
-            self.players = []
 
-        if self.keepers:
-            self.keepers = keepers
-        else:
-            self.keepers = []
-
-        if self.stats:
-            self.stats = stats
-        else:
-            self.stats = {}
+        self.players = self.players if self.players else []
+        self.keepers = self.keepers if self.keepers else []
+        self.stats = self.stats if self.stats else {}
 
     def __unicode__(self):
         return u'%s' % self.name
