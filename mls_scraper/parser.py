@@ -70,9 +70,6 @@ class StatsParser(object):
     def get_starters(self):
         ''' Abstract method responsible for grabbing the starters for a
         match.
-
-        TODO: Create and use a Player class, instead of the loose dict
-        approach currently in play
         '''
 
     @abstractmethod
