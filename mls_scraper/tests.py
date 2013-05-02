@@ -99,7 +99,7 @@ class TestMLSScraper(unittest.TestCase):
         assert self.parser.game.away_team.players
 
         amarikwa_sub = [player for player in self.parser.game.home_team.players
-                        if player['Player'] == 'Quincy Amarikwa']
+                        if player.name == 'Quincy Amarikwa']
         self.assertTrue(len(amarikwa_sub) > 0)
 
     def test_process_subs_puts_correct_players_on_away_team(self):
@@ -109,7 +109,7 @@ class TestMLSScraper(unittest.TestCase):
         assert self.parser.game.away_team.players
 
         correa_sub = [player for player in self.parser.game.away_team.players
-                      if player['Player'] == 'Jose Correa']
+                      if player.name == 'Jose Correa']
         self.assertTrue(len(correa_sub) > 0)
 
     def test_get_goals(self):

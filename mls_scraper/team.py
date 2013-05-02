@@ -9,7 +9,6 @@ class Team(object):
 
     def __init__(self, name=None, players=None, keepers=None, stats=None):
         self.name = name
-
         self.players = self.players if self.players else []
         self.keepers = self.keepers if self.keepers else []
         self.stats = self.stats if self.stats else {}

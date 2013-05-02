@@ -7,6 +7,7 @@ from abc import ABCMeta, abstractmethod
 import requests
 from BeautifulSoup import BeautifulSoup
 
+import player
 from game import GameStatSet
 
 
@@ -146,12 +147,12 @@ class MLSStatsParser(StatsParser):
             if outer_skip_func and outer_skip_func(player_row):
                 continue
 
-            player = {}
+            player_dict = {}
             offset = 0
             for count, child in enumerate(player_row.findChildren()):
                 if inner_parse_func:
                     result_dict, skip = inner_parse_func(count, child)
-                    player.update(result_dict)
+                    player_dict.update(result_dict)
 
                     if skip:
                         continue
@@ -162,14 +163,14 @@ class MLSStatsParser(StatsParser):
                     continue
 
                 try:
-                    player[stat_key[count - offset]] = child.text
+                    player_dict[stat_key[count - offset]] = child.text
                 except IndexError:
                     # See these occasionally, still tracking the cause
                     self.logger.info('IndexError in _parse_stat_table')
                     self.logger.info('Index count: %s', count)
                     self.logger.info('Key: %s' % stat_key)
 
-            stats.append(player)
+            stats.append(player_dict)
             player_row = player_row.findNext('tr')
 
         return stats
@@ -246,8 +247,10 @@ class MLSStatsParser(StatsParser):
         if not away_table and not home_table:
             self.logger.error('Unable to parse starters')
 
-        self.game.home_team.players = self._parse_stat_table(home_table)
-        self.game.away_team.players = self._parse_stat_table(away_table)
+        self.game.home_team.players = [
+            player.Player(x) for x in self._parse_stat_table(home_table)]
+        self.game.away_team.players = [
+            player.Player(x) for x in self._parse_stat_table(away_table)]
 
     def get_keepers(self):
         ''' Finds the home/away table for keepers and parses them out '''
@@ -264,8 +267,10 @@ class MLSStatsParser(StatsParser):
         if not away_table and not home_table:
             self.logger.error('Unable to parse keepers')
 
-        home_keepers = self._parse_stat_table(home_table)
-        away_keepers = self._parse_stat_table(away_table)
+        home_keepers = [
+            player.Keeper(x) for x in self._parse_stat_table(home_table)]
+        away_keepers = [
+            player.Keeper(x) for x in self._parse_stat_table(away_table)]
         self.game.home_team.keepers = home_keepers
         self.game.away_team.keepers = away_keepers
 
@@ -294,8 +299,14 @@ class MLSStatsParser(StatsParser):
         if not away_table and not home_table:
             self.logger.error('Unable to parse subs')
 
-        home_subs = self._parse_stat_table(home_table, skip_starters)
-        away_subs = self._parse_stat_table(away_table, skip_starters)
+        home_subs = [
+            player.Player(x) for x in self._parse_stat_table(
+                home_table, skip_starters)
+        ]
+        away_subs = [
+            player.Player(x) for x in self._parse_stat_table(
+                away_table, skip_starters)
+        ]
 
         self.game.home_team.players.extend(home_subs)
         self.game.away_team.players.extend(away_subs)
