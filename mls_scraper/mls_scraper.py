@@ -232,6 +232,54 @@ class GameStatSet(object):
         self.home_team.players.extend(home_subs)
         self.away_team.players.extend(away_subs)
 
+        self._process_subs_list()
+
+    def _process_subs_list(self):
+        ''' Generates a list of substitution "events" from the HTML
+            in the game and attaches it to each team in the game.
+
+            Substitution event:
+            { "player_off": <player name>,
+              "player_on":  <player name>,
+              "minute": <int>}'''
+
+        home_table = None
+        away_table = None
+        for table in self.stat_html.findAll(id='stats-subs'):
+            if any(re.search(
+                    'home', x) for x in itertools.chain(*table.attrs)):
+                home_table = table
+            elif any(re.search(
+                    'away', x) for x in itertools.chain(*table.attrs)):
+                away_table = table
+
+        if not away_table and not home_table:
+            self.logger.error('Unable to parse subs')
+
+        self.home_team.subs = self._process_subs_list_table(home_table)
+        self.away_team.subs = self._process_subs_list_table(away_table)
+
+    def _process_subs_list_table(self, table):
+        children = table.findChildren("tr")
+        subs = []
+        for idx in xrange(1, len(children), 2):
+            off_row = children[idx]
+            on_row = children[idx + 1]
+
+            off_player = off_row.findChildren()[3].text
+            on_player = on_row.findChildren()[3].text
+
+            # If a player played 30 minutes, sub is at 31st minute for example
+            sub_minute = int(off_row.findChildren()[4].text) + 1
+
+            sub_info = {
+                "player_off": off_player,
+                "player_on": on_player,
+                "minute": sub_minute}
+            subs.append(sub_info)
+
+        return subs
+
     def _process_goals(self):
         ''' Process the Goals div which has an id of "goals" '''
         goals_div = self.stat_html.find('div', {'id': 'goals'})
@@ -271,7 +319,9 @@ def main(urls):
     for url in urls:
         match = GameStatSet(url)
         print match.home_team.players
+        print match.home_team.subs
         print match.away_team.players
+        print match.away_team.subs
         print match.goals
         print match.disciplinary_events
         print match
