@@ -304,7 +304,7 @@ class MLSStatsParser(StatsParser):
         ''' Grabs the goals from the stats and stores them '''
         goals_div = self.stat_html.find('div', {'id': 'goals'})
         goals = self._parse_stat_table(goals_div)
-        self.goals = goals
+        self.game.goals = goals
 
     def get_bookings(self):
         ''' Grabs the booking events from the stats and stores them. Also

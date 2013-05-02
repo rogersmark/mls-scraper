@@ -7,7 +7,7 @@ import os
 from mock import Mock
 from BeautifulSoup import BeautifulSoup
 
-import mls_scraper
+import parser
 import formation
 
 
@@ -15,16 +15,17 @@ class TestMLSScraper(unittest.TestCase):
 
     def setUp(self):
         super(TestMLSScraper, self).setUp()
-        self.orig_requests = mls_scraper.requests
+        self.orig_requests = parser.requests
         self.stat_html = open(
             os.path.join(os.path.dirname(__file__), 'test_stats.html')
         ).read()
-        mls_scraper.requests = Mock()
-        self.game = mls_scraper.GameStatSet()
+        parser.requests = Mock()
+        self.parser = parser.MLSStatsParser(
+            'http://www.example.com/stats/', False)
 
     def tearDown(self):
-        mls_scraper.requests = self.orig_requests
-        self.game = None
+        parser.requests = self.orig_requests
+        self.parser = None
         super(TestMLSScraper, self).tearDown()
 
     def _create_requests_mock_return(self, url='http://www.example.com/stats',
@@ -35,94 +36,93 @@ class TestMLSScraper(unittest.TestCase):
             status_code=status_code,
             url=url,
         )
-        mls_scraper.requests = requests_mock
+        parser.requests = requests_mock
 
     def _load_stats(self):
-        self.game.stat_url = 'http://www.example.com/stats'
+        self.parser.stat_url = 'http://www.example.com/stats'
         self._create_requests_mock_return()
-        self.game._load_stat_html()
+        self.parser._load_stat_html()
 
     def test_load_stat_html(self):
         ''' Asserts that we successfully parse HTML, and translate recap urls
         into legit stat urls
         '''
-        self.game.stat_url = 'http://www.example.com/recap'
+        self.parser.stat_url = 'http://www.example.com/recap'
         self._create_requests_mock_return(url='http://www.example.com/recap')
-        self.game._load_stat_html()
-        assert isinstance(self.game.stat_html, BeautifulSoup)
-        self.assertEqual(self.game.stat_url, 'http://www.example.com/stats')
+        self.parser._load_stat_html()
+        assert isinstance(self.parser.stat_html, BeautifulSoup)
+        self.assertEqual(self.parser.stat_url, 'http://www.example.com/stats')
 
-    def test_process_header(self):
+    def test_get_general_info(self):
         ''' Asserts that we get the right team names and game start time '''
         self._load_stats()
-        self.game._process_header()
-        self.assertEqual(self.game.home_team.name, 'Chicago Fire')
-        self.assertEqual(self.game.away_team.name, 'Chivas USA')
-        assert self.game.game_date
+        self.parser.get_general_info()
+        self.assertEqual(self.parser.game.home_team.name, 'Chicago Fire')
+        self.assertEqual(self.parser.game.away_team.name, 'Chivas USA')
+        assert self.parser.game.game_date
 
-    def test_process_team_stats(self):
+    def test_get_team_stats(self):
         self._load_stats()
-        self.game._process_team_stats()
-        assert self.game.home_team.stats
-        assert self.game.away_team.stats
+        self.parser.get_team_stats()
+        assert self.parser.game.home_team.stats
+        assert self.parser.game.away_team.stats
 
-    def test_process_starters(self):
+    def test_get_starters(self):
         self._load_stats()
-        self.game._process_starters()
-        assert self.game.home_team.players
-        assert self.game.away_team.players
-        self.assertEqual(len(self.game.home_team.players), 10)
-        self.assertEqual(len(self.game.away_team.players), 10)
+        self.parser.get_starters()
+        assert self.parser.game.home_team.players
+        assert self.parser.game.away_team.players
+        self.assertEqual(len(self.parser.game.home_team.players), 10)
+        self.assertEqual(len(self.parser.game.away_team.players), 10)
 
-    def test_process_keepers(self):
+    def test_get_keepers(self):
         self._load_stats()
-        self.game._process_keepers()
-        assert self.game.home_team.keepers
-        assert self.game.away_team.keepers
-        self.assertEqual(len(self.game.home_team.keepers), 1)
-        self.assertEqual(len(self.game.away_team.keepers), 1)
+        self.parser.get_keepers()
+        assert self.parser.game.home_team.keepers
+        assert self.parser.game.away_team.keepers
+        self.assertEqual(len(self.parser.game.home_team.keepers), 1)
+        self.assertEqual(len(self.parser.game.away_team.keepers), 1)
 
-    def test_process_subs(self):
+    def test_get_substitutions(self):
         self._load_stats()
+        self.parser.get_substitutions()
+        assert self.parser.game.home_team.players
+        assert self.parser.game.away_team.players
 
-        self.game._process_subs()
-        assert self.game.home_team.players
-        assert self.game.away_team.players
-
-        self.assertEqual(len(self.game.home_team.players), 3)
-        self.assertEqual(len(self.game.away_team.players), 3)
+        self.assertEqual(len(self.parser.game.home_team.players), 3)
+        self.assertEqual(len(self.parser.game.away_team.players), 3)
 
     def test_process_subs_puts_correct_players_on_home_team(self):
         self._load_stats()
-        self.game._process_subs()
-        assert self.game.home_team.players
-        assert self.game.away_team.players
+        self.parser.get_substitutions()
+        assert self.parser.game.home_team.players
+        assert self.parser.game.away_team.players
 
-        amarikwa_sub = [player for player in self.game.home_team.players
+        amarikwa_sub = [player for player in self.parser.game.home_team.players
                         if player['Player'] == 'Quincy Amarikwa']
         self.assertTrue(len(amarikwa_sub) > 0)
 
     def test_process_subs_puts_correct_players_on_away_team(self):
         self._load_stats()
-        self.game._process_subs()
-        assert self.game.home_team.players
-        assert self.game.away_team.players
+        self.parser.get_substitutions()
+        assert self.parser.game.home_team.players
+        assert self.parser.game.away_team.players
 
-        correa_sub = [player for player in self.game.away_team.players
+        correa_sub = [player for player in self.parser.game.away_team.players
                       if player['Player'] == 'Jose Correa']
         self.assertTrue(len(correa_sub) > 0)
 
-    def test_process_goals(self):
+    def test_get_goals(self):
         self._load_stats()
-        self.game._process_goals()
-        assert self.game.goals
-        self.assertEqual(len(self.game.goals), 5)
+        self.parser.get_goals()
+        assert self.parser.game.goals
+        self.assertEqual(len(self.parser.game.goals), 5)
 
-    def test_process_disciplinary_actions(self):
+    def test_get_bookings(self):
         self._load_stats()
-        self.game._process_disciplinary_actions()
-        assert self.game.disciplinary_events
-        self.assertEqual(len(self.game.disciplinary_events), 3)
+        self.parser.get_bookings()
+        assert self.parser.game.disciplinary_events
+        self.assertEqual(len(self.parser.game.disciplinary_events), 3)
 
 
 # Test formations.
@@ -153,7 +153,6 @@ class TestFormationScraper(unittest.TestCase):
         assert h[-1][0] == 'Darren Mattocks'
         assert h[1] == ['Alain Rochat', 'Brad Rusin', 'Andy O\'Brien', 'Lee Young-Pyo']
 
-
     def test_away(self):
         a = self.formations['away']
         print a
@@ -163,5 +162,3 @@ class TestFormationScraper(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
-
