@@ -22,6 +22,9 @@ lib64
 # Installer logs
 pip-log.txt
 
+# Scraper logs
+scraper.log
+
 # Unit test / coverage reports
 .coverage
 .tox
