@@ -14,7 +14,9 @@ class Goal(BaseEvent):
 
 class Booking(BaseEvent):
 
-    pass
+    player = None
+    card_color = None
+    reason = None
 
 
 class Substitution(BaseEvent):

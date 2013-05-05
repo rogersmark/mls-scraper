@@ -314,6 +314,7 @@ class MLSStatsParser(StatsParser):
         self.game.away_team.players.extend(away_subs)
 
     def _parse_goal_dict(self, goal_dict):
+        ''' Parses a goal dictionary and returns a Goal object '''
         goal = events.Goal()
         team_name = ABBREVIATION_MAP[goal_dict['Club']]
         goal.time = int(goal_dict['Time'].rstrip("'"))
@@ -352,6 +353,26 @@ class MLSStatsParser(StatsParser):
 
         self.game.goals = goals
 
+    def _parse_booking_dict(self, booking_dict):
+        ''' Parses a booking dictionary and returns a Booking object '''
+        booking = events.Booking()
+        team_name = ABBREVIATION_MAP[booking_dict['Club']]
+        booking.time = int(booking_dict['Time'].rstrip("'"))
+        if team_name == self.game.home_team.name:
+            booking.team = self.game.home_team
+        else:
+            booking.team = self.game.away_team
+
+        player_name = '%s %s' % player.BasePlayer.parse_name(
+            booking_dict['Player'])
+        for player_obj in booking.team.players:
+            if player_obj.name == player_name:
+                booking.player = player_obj
+                break
+
+        booking.reason = booking_dict['Reason']
+        return booking
+
     def get_bookings(self):
         ''' Grabs the booking events from the stats and stores them. Also
         provides a get_card_color inner parsing function to _parse_stat_table
@@ -375,4 +396,6 @@ class MLSStatsParser(StatsParser):
             disciplinary_div,
             inner_parse_func=get_card_color
         )
-        self.game.disciplinary_events = events
+        self.game.disciplinary_events = [
+            self._parse_booking_dict(x) for x in events
+        ]
