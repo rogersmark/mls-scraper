@@ -171,6 +171,16 @@ class TestMLSScraper(unittest.TestCase):
         )
         self.assertEqual(goal.team.name, 'Chicago Fire')
 
+    def test_own_goal(self):
+        ''' Tests that own goals are handled properly '''
+        self._load_stats(players=True)
+        self.parser._get_goals()
+        assert self.parser.game.goals
+        self.assertEqual(len(self.parser.game.goals), 5)
+        goal = self.parser.game.goals[-1]
+        self.assertEqual(goal.player.name, 'Jalil Anibaba')
+        assert goal.own_goal
+
     def test_process_subs_list_generates_subs_list(self):
         self._load_stats(players=True)
         self.parser._get_substitution_events()

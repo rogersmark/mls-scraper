@@ -10,6 +10,7 @@ class Goal(BaseEvent):
 
     player = None
     assisted_by = []
+    own_goal = False
 
 
 class Booking(BaseEvent):

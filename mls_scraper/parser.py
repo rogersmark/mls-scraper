@@ -376,6 +376,8 @@ class MLSStatsParser(StatsParser):
 
         player_name = '%s %s' % player.BasePlayer.parse_name(
             goal_dict['Player'])
+        if re.search('(OG)', goal_dict['Player']):
+            goal.own_goal = True
         for player_obj in goal.team.players:
             if player_obj.name == player_name:
                 goal.player = player_obj
