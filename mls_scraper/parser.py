@@ -371,6 +371,7 @@ class MLSStatsParser(StatsParser):
                 break
 
         booking.reason = booking_dict['Reason']
+        booking.card_color = booking_dict['card_color']
         return booking
 
     def get_bookings(self):
