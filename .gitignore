@@ -27,6 +27,7 @@ scraper.log
 
 # Unit test / coverage reports
 .coverage
+coverage.xml
 .tox
 nosetests.xml
 

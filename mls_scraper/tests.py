@@ -46,6 +46,48 @@ class TestMLSScraper(unittest.TestCase):
         if players:
             self.parser.get_players()
 
+    def test_generate_stats(self):
+        ''' Tests the big method of generating all of the stats for a parser.
+        We're mostly concerned that it just hits all the right methods, since
+        the various methods themselves are all tested below.
+        '''
+        methods_to_call = [
+            '_load_stat_html',
+            'get_general_info',
+            'get_team_stats',
+            'get_players',
+            'get_events',
+        ]
+        pre_mocks = []
+        for method in methods_to_call:
+            pre_mocks.append(getattr(self.parser, method))
+            setattr(self.parser, method, Mock())
+
+        self.parser._generate_stats()
+        for count, method in enumerate(methods_to_call):
+            assert getattr(self.parser, method).called
+            setattr(self.parser, method, pre_mocks[count])
+
+    def test_get_events(self):
+        ''' Tests the method that calls our various event grabbers. Just
+        testing that it calls the right methods, since we already have tests
+        for the individual methods elsewhere.
+        '''
+        methods_to_call = [
+            '_get_substitution_events',
+            '_get_goals',
+            '_get_bookings',
+        ]
+        pre_mocks = []
+        for method in methods_to_call:
+            pre_mocks.append(getattr(self.parser, method))
+            setattr(self.parser, method, Mock())
+
+        self.parser.get_events()
+        for count, method in enumerate(methods_to_call):
+            assert getattr(self.parser, method).called
+            setattr(self.parser, method, pre_mocks[count])
+
     def test_load_stat_html(self):
         ''' Asserts that we successfully parse HTML, and translate recap urls
         into legit stat urls

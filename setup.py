@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import multiprocessing
 try:
     from setuptools import setup, find_packages
 except ImportError:
@@ -23,7 +24,8 @@ setup(
     install_requires=install_requires,
     include_package_data=True,
     entry_points={},
-    test_suite='mls_scraper.tests',
+    test_suite='nose.collector',
+    setup_requires=['nose>=1.0'],
     classifiers=[
         'Framework :: Django',
         'Intended Audience :: Developers',

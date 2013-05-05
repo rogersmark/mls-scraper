@@ -28,8 +28,7 @@ class StatsParser(object):
         self.get_general_info()
         self.get_team_stats()
         self.get_players()
-        self.get_goals()
-        self.get_bookings()
+        self.get_events()
 
     @abstractmethod
     def _load_stat_html(self):
@@ -101,7 +100,6 @@ class StatsParser(object):
         self._get_substitution_events()
         self._get_goals()
         self._get_bookings()
-
 
 
 class MLSStatsParser(StatsParser):
