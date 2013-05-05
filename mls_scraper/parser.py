@@ -276,6 +276,61 @@ class MLSStatsParser(StatsParser):
         self.game.home_team.keepers = home_keepers
         self.game.away_team.keepers = away_keepers
 
+    def _process_subs_list_table(self, table):
+        children = table.findChildren("tr")
+        subs = []
+        for idx in xrange(1, len(children), 2):
+            sub = events.Substitution()
+            if 'home' in table.attrMap['class']:
+                sub.team = self.game.home_team
+            else:
+                sub.team = self.game.away_team
+
+            off_row = children[idx]
+            on_row = children[idx + 1]
+            off_player = '%s %s' % player.BasePlayer.parse_name(
+                off_row.findChildren()[3].text)
+            on_player = '%s %s' % player.BasePlayer.parse_name(
+                on_row.findChildren()[3].text)
+            # If a player played 30 minutes, sub is at 31st minute for example
+            sub_minute = int(off_row.findChildren()[4].text) + 1
+            sub.time = sub_minute
+            for player_obj in sub.team.players:
+                if player_obj.name == off_player:
+                    sub.player_off = player_obj
+                elif player_obj.name == on_player:
+                    sub.player_on = player_obj
+
+            subs.append(sub)
+
+        return subs
+
+    def _process_subs_list(self):
+        ''' Generates a list of substitution "events" from the HTML
+            in the game and attaches it to each team in the game.
+
+            Substitution event:
+            { "player_off": <player name>,
+              "player_on":  <player name>,
+              "minute": <int>}
+        '''
+
+        home_table = None
+        away_table = None
+        for table in self.stat_html.findAll(id='stats-subs'):
+            if any(re.search(
+                    'home', x) for x in itertools.chain(*table.attrs)):
+                home_table = table
+            elif any(re.search(
+                    'away', x) for x in itertools.chain(*table.attrs)):
+                away_table = table
+
+        if not away_table and not home_table:
+            self.logger.error('Unable to parse subs')
+
+        self.game.home_team.subs = self._process_subs_list_table(home_table)
+        self.game.away_team.subs = self._process_subs_list_table(away_table)
+
     def _get_substitutions(self):
         ''' Finds the home/away table for subs and parses them out. Also
         provides a "skip_starters" method to _parse_stat_table for skipping
@@ -312,6 +367,7 @@ class MLSStatsParser(StatsParser):
 
         self.game.home_team.players.extend(home_subs)
         self.game.away_team.players.extend(away_subs)
+        self._process_subs_list()
 
     def _parse_goal_dict(self, goal_dict):
         ''' Parses a goal dictionary and returns a Goal object '''

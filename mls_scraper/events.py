@@ -21,4 +21,5 @@ class Booking(BaseEvent):
 
 class Substitution(BaseEvent):
 
-    pass
+    player_on = None
+    player_off = None

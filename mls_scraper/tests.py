@@ -129,6 +129,36 @@ class TestMLSScraper(unittest.TestCase):
         )
         self.assertEqual(goal.team.name, 'Chicago Fire')
 
+    def test_process_subs_list_generates_subs_list(self):
+        self._load_stats()
+        self.parser._process_subs_list()
+
+        self.assertTrue(hasattr(self.parser.game.home_team, "subs"))
+        self.assertTrue(hasattr(self.parser.game.away_team, "subs"))
+
+    def test_process_subs_list_has_correct_number(self):
+        self._load_stats()
+        self.parser._process_subs_list()
+
+        self.assertEqual(3, len(self.parser.game.home_team.subs))
+        self.assertEqual(3, len(self.parser.game.away_team.subs))
+
+    def test_process_subs_list_has_correct_players(self):
+        self._load_stats(players=True)
+        self.parser._process_subs_list()
+
+        correa_sub = [sub for sub in self.parser.game.away_team.subs
+                      if sub.player_on.name == 'Jose Correa']
+        self.assertTrue(len(correa_sub) > 0)
+
+    def test_process_subs_list_have_correct_minutes(self):
+        self._load_stats(players=True)
+        self.parser._process_subs_list()
+
+        correa_sub = [sub for sub in self.parser.game.away_team.subs
+                      if sub.player_on.name == 'Jose Correa'][0]
+        self.assertEqual(74, correa_sub.time)
+
     def test_get_bookings(self):
         self._load_stats(players=True)
         self.parser.get_bookings()
