@@ -112,6 +112,36 @@ class TestMLSScraper(unittest.TestCase):
                       if player['Player'] == 'Jose Correa']
         self.assertTrue(len(correa_sub) > 0)
 
+    def test_process_subs_list_generates_subs_list(self):
+        self._load_stats()
+        self.game._process_subs_list()
+
+        self.assertTrue(hasattr(self.game.home_team, "subs"))
+        self.assertTrue(hasattr(self.game.away_team, "subs"))
+
+    def test_process_subs_list_has_correct_number(self):
+        self._load_stats()
+        self.game._process_subs_list()
+
+        self.assertEqual(3, len(self.game.home_team.subs))
+        self.assertEqual(3, len(self.game.away_team.subs))
+
+    def test_process_subs_list_has_correct_players(self):
+        self._load_stats()
+        self.game._process_subs_list()
+
+        correa_sub = [sub for sub in self.game.away_team.subs
+                      if sub['player_on'] == 'Jose Correa']
+        self.assertTrue(len(correa_sub) > 0)
+
+    def test_process_subs_list_have_correct_minutes(self):
+        self._load_stats()
+        self.game._process_subs_list()
+
+        correa_sub = [sub for sub in self.game.away_team.subs
+                      if sub['player_on'] == 'Jose Correa'][0]
+        self.assertEqual(74, correa_sub['minute'])
+
     def test_process_goals(self):
         self._load_stats()
         self.game._process_goals()
