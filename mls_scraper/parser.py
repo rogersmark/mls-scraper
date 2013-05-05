@@ -10,6 +10,7 @@ from BeautifulSoup import BeautifulSoup
 import player
 import events
 from game import GameStatSet
+from formation import Formation
 from mls_scraper import ABBREVIATION_MAP
 
 
@@ -29,6 +30,7 @@ class StatsParser(object):
         self.get_team_stats()
         self.get_players()
         self.get_events()
+        self.get_formations()
 
     @abstractmethod
     def _load_stat_html(self):
@@ -100,6 +102,10 @@ class StatsParser(object):
         self._get_substitution_events()
         self._get_goals()
         self._get_bookings()
+
+    @abstractmethod
+    def get_formations(self):
+        ''' Abstract method for retrieving formation information '''
 
 
 class MLSStatsParser(StatsParser):
@@ -249,9 +255,9 @@ class MLSStatsParser(StatsParser):
         if not away_table and not home_table:
             self.logger.error('Unable to parse starters')
 
-        self.game.home_team.players = [
+        self.game.home_team.starters = [
             player.Player(x) for x in self._parse_stat_table(home_table)]
-        self.game.away_team.players = [
+        self.game.away_team.starters = [
             player.Player(x) for x in self._parse_stat_table(away_table)]
 
     def _get_keepers(self):
@@ -306,8 +312,8 @@ class MLSStatsParser(StatsParser):
                 away_table, skip_starters)
         ]
 
-        self.game.home_team.players.extend(home_subs)
-        self.game.away_team.players.extend(away_subs)
+        self.game.home_team.subs = home_subs
+        self.game.away_team.subs = away_subs
 
     def _process_subs_list_table(self, table):
         children = table.findChildren("tr")
@@ -361,8 +367,9 @@ class MLSStatsParser(StatsParser):
         if not away_table and not home_table:
             self.logger.error('Unable to parse subs')
 
-        self.game.home_team.subs = self._process_subs_list_table(home_table)
-        self.game.away_team.subs = self._process_subs_list_table(away_table)
+        home_subs = self._process_subs_list_table(home_table)
+        away_subs = self._process_subs_list_table(away_table)
+        self.game.subs = home_subs + away_subs
 
     def _parse_goal_dict(self, goal_dict):
         ''' Parses a goal dictionary and returns a Goal object '''
@@ -453,3 +460,72 @@ class MLSStatsParser(StatsParser):
         self.game.disciplinary_events = [
             self._parse_booking_dict(x) for x in events
         ]
+
+    def _get_formation_contents(self, l, formatter=lambda s: s):
+        """Fetch the contents from a soup object."""
+
+        if not hasattr(l, 'contents'):
+            s = l
+        else:
+            s = ""
+
+            for e in l.contents:
+                s += self._get_formation_contents(e)
+        return formatter(s.strip())
+
+    def _process_formation(self, soup, home=False):
+        strip_leading_digits = lambda s: re.match("\d*(.*)", s).groups()[0].strip()
+        extract_player = lambda tag: strip_leading_digits(
+            self._get_formation_contents(tag))
+        extract_line = lambda l: [extract_player(e) for e in l if extract_player(e)]
+
+        if home:
+            team = self.game.home_team
+        else:
+            team = self.game.away_team
+
+        lines = soup.findAll('div')
+        formation = []
+        for line in lines[:-1]:
+            form_line = extract_line(line)
+            player_list = []
+            for item in form_line:
+                player_name = '%s %s' % player.BasePlayer.parse_name(item)
+                for player_obj in team.players:
+                    if player_name == player_obj.name:
+                        player_list.append(player_obj)
+
+            formation.append(player_list)
+
+        formation.reverse()
+        return formation
+
+    def _parse_formation_url(self, url):
+        try:
+            resp = requests.get(url)
+        except requests.RequestException:
+            self.logger.exception("Unable to load formation URL: %s", url)
+            raise
+
+        if not resp.status_code == 200:
+            self.logger.error('Improper status code: %s', resp.status_code)
+            raise requests.RequestException(
+                'MLS returned a %s status code' % resp.status_code)
+
+        return self._parse_formation_html(resp.content)
+
+    def _parse_formation_html(self, html):
+        soup = BeautifulSoup(html)
+        formations = soup.find('div', {'class': 'formations'})
+        home, away = formations.findAll('div', recursive=False)
+        return {
+            'home': Formation(self._process_formation(home, True)),
+            'away': Formation(self._process_formation(away))
+        }
+
+    def get_formations(self):
+        ''' Parses out and retreives Formation objects '''
+        url = self.stat_url.replace('/stats', '/formation')
+        results = self._parse_formation_url(url)
+        self.game.home_team.formation = results['home']
+        self.game.away_team.formation = results['away']

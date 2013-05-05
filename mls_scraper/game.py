@@ -9,6 +9,7 @@ class GameStatSet(object):
     goals = []
     disciplinary_events = []
     game_date = None
+    subs = []
 
     def __init__(self, stat_url=None, home_team=None, away_team=None):
         self.stat_url = stat_url

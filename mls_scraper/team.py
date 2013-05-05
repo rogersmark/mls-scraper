@@ -3,18 +3,26 @@
 class Team(object):
 
     name = None
-    players = []
+    starters = []
     keepers = []
+    subs = []
     stats = {}
+    formation = None
 
-    def __init__(self, name=None, players=None, keepers=None, stats=None):
+    def __init__(self, name=None, starters=None, keepers=None,
+                 subs=None, stats=None):
         self.name = name
-        self.players = self.players if self.players else []
-        self.keepers = self.keepers if self.keepers else []
-        self.stats = self.stats if self.stats else {}
+        self.starters = starters if starters else []
+        self.keepers = keepers if keepers else []
+        self.stats = stats if stats else {}
+        self.subs = subs if subs else []
 
     def __unicode__(self):
         return u'%s' % self.name
 
     def __str__(self):
         return self.__unicode__()
+
+    @property
+    def players(self):
+        return self.starters + self.keepers + self.subs
