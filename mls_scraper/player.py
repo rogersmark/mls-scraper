@@ -19,7 +19,8 @@ class BasePlayer(object):
         return self.__unicode__()
 
     def __init__(self, stats_dict):
-        self._parse_name(stats_dict['Player'])
+        self.first_name, self.last_name = self.parse_name(
+            stats_dict['Player'])
         self.number = stats_dict['#']
         self.minutes = stats_dict['MIN']
         self.fouls_commited = stats_dict['FC']
@@ -31,14 +32,17 @@ class BasePlayer(object):
         self.shots = stats_dict.get('SHT', 0)
         self.assists = stats_dict.get('A', 0)
 
-    def _parse_name(self, name):
+    @classmethod
+    def parse_name(cls, name):
         ''' Takes a player name and generates first/last names '''
         player_name = name.split()
         if len(player_name) == 1:
-            self.first_name = self.last_name = player_name[0]
+            first_name = last_name = player_name[0]
         else:
-            self.first_name = player_name[0]
-            self.last_name = player_name[1]
+            first_name = player_name[0]
+            last_name = player_name[1]
+
+        return first_name, last_name
 
     @property
     def name(self):

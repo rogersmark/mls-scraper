@@ -8,7 +8,9 @@ import requests
 from BeautifulSoup import BeautifulSoup
 
 import player
+import events
 from game import GameStatSet
+from mls_scraper import ABBREVIATION_MAP
 
 
 class StatsParser(object):
@@ -25,9 +27,7 @@ class StatsParser(object):
         self._load_stat_html()
         self.get_general_info()
         self.get_team_stats()
-        self.get_starters()
-        self.get_keepers()
-        self.get_substitutions()
+        self.get_players()
         self.get_goals()
         self.get_bookings()
 
@@ -67,18 +67,23 @@ class StatsParser(object):
         '''
 
     @abstractmethod
-    def get_starters(self):
+    def _get_starters(self):
         ''' Abstract method responsible for grabbing the starters for a
         match.
         '''
 
     @abstractmethod
-    def get_keepers(self):
+    def _get_keepers(self):
         ''' See get_starters -- Likely to be very similar '''
 
     @abstractmethod
-    def get_substitutions(self):
+    def _get_substitutions(self):
         ''' See get_starters -- Likely to be very similar '''
+
+    def get_players(self):
+        self._get_starters()
+        self._get_keepers()
+        self._get_substitutions()
 
     @abstractmethod
     def get_goals(self):
@@ -229,7 +234,7 @@ class MLSStatsParser(StatsParser):
         self.game.home_team.stats = home_stats
         self.game.away_team.stats = away_stats
 
-    def get_starters(self):
+    def _get_starters(self):
         ''' Finds the home/away tables for starters and parses them out '''
         home_table = None
         away_table = None
@@ -249,7 +254,7 @@ class MLSStatsParser(StatsParser):
         self.game.away_team.players = [
             player.Player(x) for x in self._parse_stat_table(away_table)]
 
-    def get_keepers(self):
+    def _get_keepers(self):
         ''' Finds the home/away table for keepers and parses them out '''
         home_table = None
         away_table = None
@@ -271,7 +276,7 @@ class MLSStatsParser(StatsParser):
         self.game.home_team.keepers = home_keepers
         self.game.away_team.keepers = away_keepers
 
-    def get_substitutions(self):
+    def _get_substitutions(self):
         ''' Finds the home/away table for subs and parses them out. Also
         provides a "skip_starters" method to _parse_stat_table for skipping
         starters.
@@ -308,10 +313,43 @@ class MLSStatsParser(StatsParser):
         self.game.home_team.players.extend(home_subs)
         self.game.away_team.players.extend(away_subs)
 
+    def _parse_goal_dict(self, goal_dict):
+        goal = events.Goal()
+        team_name = ABBREVIATION_MAP[goal_dict['Club']]
+        goal.time = int(goal_dict['Time'].rstrip("'"))
+        if team_name == self.game.home_team.name:
+            goal.team = self.game.home_team
+        else:
+            goal.team = self.game.away_team
+
+        player_name = '%s %s' % player.BasePlayer.parse_name(
+            goal_dict['Player'])
+        for player_obj in goal.team.players:
+            if player_obj.name == player_name:
+                goal.player = player_obj
+                break
+
+        assists = []
+        for player_info in goal_dict.get('(Assisted by)', '').split(','):
+            if not player_info:
+                continue
+            player_name = '%s %s' % player.BasePlayer.parse_name(
+                player_info.lstrip('(').rstrip(')'))
+            for player_obj in goal.team.players:
+                if player_obj.name == player_name:
+                    assists.append(player_obj)
+
+        goal.assisted_by = assists
+        return goal
+
     def get_goals(self):
         ''' Grabs the goals from the stats and stores them '''
         goals_div = self.stat_html.find('div', {'id': 'goals'})
-        goals = self._parse_stat_table(goals_div)
+        goals_dict = self._parse_stat_table(goals_div)
+        goals = []
+        for goal in goals_dict:
+            goals.append(self._parse_goal_dict(goal))
+
         self.game.goals = goals
 
     def get_bookings(self):

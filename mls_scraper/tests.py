@@ -38,10 +38,13 @@ class TestMLSScraper(unittest.TestCase):
         )
         parser.requests = requests_mock
 
-    def _load_stats(self):
+    def _load_stats(self, players=False):
         self.parser.stat_url = 'http://www.example.com/stats'
         self._create_requests_mock_return()
         self.parser._load_stat_html()
+        self.parser.get_general_info()
+        if players:
+            self.parser.get_players()
 
     def test_load_stat_html(self):
         ''' Asserts that we successfully parse HTML, and translate recap urls
@@ -69,7 +72,7 @@ class TestMLSScraper(unittest.TestCase):
 
     def test_get_starters(self):
         self._load_stats()
-        self.parser.get_starters()
+        self.parser._get_starters()
         assert self.parser.game.home_team.players
         assert self.parser.game.away_team.players
         self.assertEqual(len(self.parser.game.home_team.players), 10)
@@ -77,7 +80,7 @@ class TestMLSScraper(unittest.TestCase):
 
     def test_get_keepers(self):
         self._load_stats()
-        self.parser.get_keepers()
+        self.parser._get_keepers()
         assert self.parser.game.home_team.keepers
         assert self.parser.game.away_team.keepers
         self.assertEqual(len(self.parser.game.home_team.keepers), 1)
@@ -85,7 +88,7 @@ class TestMLSScraper(unittest.TestCase):
 
     def test_get_substitutions(self):
         self._load_stats()
-        self.parser.get_substitutions()
+        self.parser._get_substitutions()
         assert self.parser.game.home_team.players
         assert self.parser.game.away_team.players
 
@@ -94,7 +97,7 @@ class TestMLSScraper(unittest.TestCase):
 
     def test_process_subs_puts_correct_players_on_home_team(self):
         self._load_stats()
-        self.parser.get_substitutions()
+        self.parser._get_substitutions()
         assert self.parser.game.home_team.players
         assert self.parser.game.away_team.players
 
@@ -104,7 +107,7 @@ class TestMLSScraper(unittest.TestCase):
 
     def test_process_subs_puts_correct_players_on_away_team(self):
         self._load_stats()
-        self.parser.get_substitutions()
+        self.parser._get_substitutions()
         assert self.parser.game.home_team.players
         assert self.parser.game.away_team.players
 
@@ -113,10 +116,18 @@ class TestMLSScraper(unittest.TestCase):
         self.assertTrue(len(correa_sub) > 0)
 
     def test_get_goals(self):
-        self._load_stats()
+        self._load_stats(players=True)
         self.parser.get_goals()
         assert self.parser.game.goals
         self.assertEqual(len(self.parser.game.goals), 5)
+        goal = self.parser.game.goals[1]
+        self.assertEqual(goal.player.name, 'Patrick Nyarko')
+        self.assertEqual(goal.time, 64)
+        self.assertEqual(
+            [x.name for x in goal.assisted_by],
+            [u'Sherjill MacDonald', u'Maicon Santos']
+        )
+        self.assertEqual(goal.team.name, 'Chicago Fire')
 
     def test_get_bookings(self):
         self._load_stats()
