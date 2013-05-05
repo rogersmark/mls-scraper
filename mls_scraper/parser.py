@@ -86,20 +86,22 @@ class StatsParser(object):
         self._get_substitutions()
 
     @abstractmethod
-    def get_goals(self):
-        ''' Abstract method for retrieving goal events.
-
-        TODO: Create an Event class for storing this information instead of the
-        loose dict approach currently in play
-        '''
+    def _get_goals(self):
+        ''' Abstract method for retrieving goal events. '''
 
     @abstractmethod
-    def get_bookings(self):
-        ''' Abstract method for retrieving bookings.
+    def _get_bookings(self):
+        ''' Abstract method for retrieving bookings. '''
 
-        TODO: Create an Event class for storing this information instead of the
-        loose dict approach currently in play
-        '''
+    @abstractmethod
+    def _get_substitution_events(self):
+        ''' Abstract method for retrieving substituation events '''
+
+    def get_events(self):
+        self._get_substitution_events()
+        self._get_goals()
+        self._get_bookings()
+
 
 
 class MLSStatsParser(StatsParser):
@@ -276,6 +278,39 @@ class MLSStatsParser(StatsParser):
         self.game.home_team.keepers = home_keepers
         self.game.away_team.keepers = away_keepers
 
+    def _get_substitutions(self):
+        ''' Finds the home/away table for subs and parses them out. Also
+        provides a "skip_starters" method to _parse_stat_table for skipping
+        starters.
+        '''
+        def skip_starters(player_row):
+            return player_row.findChildren('div', {'class': 'pos-arrow'})
+
+        home_table = None
+        away_table = None
+        for table in self.stat_html.findAll(id='stats-subs'):
+            if any(re.search(
+                    'home', x) for x in itertools.chain(*table.attrs)):
+                home_table = table
+            elif any(re.search(
+                    'away', x) for x in itertools.chain(*table.attrs)):
+                away_table = table
+
+        if not away_table and not home_table:
+            self.logger.error('Unable to parse subs')
+
+        home_subs = [
+            player.Player(x) for x in self._parse_stat_table(
+                home_table, skip_starters)
+        ]
+        away_subs = [
+            player.Player(x) for x in self._parse_stat_table(
+                away_table, skip_starters)
+        ]
+
+        self.game.home_team.players.extend(home_subs)
+        self.game.away_team.players.extend(away_subs)
+
     def _process_subs_list_table(self, table):
         children = table.findChildren("tr")
         subs = []
@@ -305,7 +340,7 @@ class MLSStatsParser(StatsParser):
 
         return subs
 
-    def _process_subs_list(self):
+    def _get_substitution_events(self):
         ''' Generates a list of substitution "events" from the HTML
             in the game and attaches it to each team in the game.
 
@@ -330,44 +365,6 @@ class MLSStatsParser(StatsParser):
 
         self.game.home_team.subs = self._process_subs_list_table(home_table)
         self.game.away_team.subs = self._process_subs_list_table(away_table)
-
-    def _get_substitutions(self):
-        ''' Finds the home/away table for subs and parses them out. Also
-        provides a "skip_starters" method to _parse_stat_table for skipping
-        starters.
-
-        TODO: Need to really parse these out as true events, tracking who
-        was pulled out and who was put on. Right now the data retrieved
-        isn't as useful as it could be.
-        '''
-        def skip_starters(player_row):
-            return player_row.findChildren('div', {'class': 'pos-arrow'})
-
-        home_table = None
-        away_table = None
-        for table in self.stat_html.findAll(id='stats-subs'):
-            if any(re.search(
-                    'home', x) for x in itertools.chain(*table.attrs)):
-                home_table = table
-            elif any(re.search(
-                    'away', x) for x in itertools.chain(*table.attrs)):
-                away_table = table
-
-        if not away_table and not home_table:
-            self.logger.error('Unable to parse subs')
-
-        home_subs = [
-            player.Player(x) for x in self._parse_stat_table(
-                home_table, skip_starters)
-        ]
-        away_subs = [
-            player.Player(x) for x in self._parse_stat_table(
-                away_table, skip_starters)
-        ]
-
-        self.game.home_team.players.extend(home_subs)
-        self.game.away_team.players.extend(away_subs)
-        self._process_subs_list()
 
     def _parse_goal_dict(self, goal_dict):
         ''' Parses a goal dictionary and returns a Goal object '''
@@ -399,7 +396,7 @@ class MLSStatsParser(StatsParser):
         goal.assisted_by = assists
         return goal
 
-    def get_goals(self):
+    def _get_goals(self):
         ''' Grabs the goals from the stats and stores them '''
         goals_div = self.stat_html.find('div', {'id': 'goals'})
         goals_dict = self._parse_stat_table(goals_div)
@@ -430,7 +427,7 @@ class MLSStatsParser(StatsParser):
         booking.card_color = booking_dict['card_color']
         return booking
 
-    def get_bookings(self):
+    def _get_bookings(self):
         ''' Grabs the booking events from the stats and stores them. Also
         provides a get_card_color inner parsing function to _parse_stat_table
         so that we can determine the card color

@@ -117,7 +117,7 @@ class TestMLSScraper(unittest.TestCase):
 
     def test_get_goals(self):
         self._load_stats(players=True)
-        self.parser.get_goals()
+        self.parser._get_goals()
         assert self.parser.game.goals
         self.assertEqual(len(self.parser.game.goals), 5)
         goal = self.parser.game.goals[1]
@@ -130,22 +130,22 @@ class TestMLSScraper(unittest.TestCase):
         self.assertEqual(goal.team.name, 'Chicago Fire')
 
     def test_process_subs_list_generates_subs_list(self):
-        self._load_stats()
-        self.parser._process_subs_list()
+        self._load_stats(players=True)
+        self.parser._get_substitution_events()
 
         self.assertTrue(hasattr(self.parser.game.home_team, "subs"))
         self.assertTrue(hasattr(self.parser.game.away_team, "subs"))
 
     def test_process_subs_list_has_correct_number(self):
         self._load_stats()
-        self.parser._process_subs_list()
+        self.parser._get_substitution_events()
 
         self.assertEqual(3, len(self.parser.game.home_team.subs))
         self.assertEqual(3, len(self.parser.game.away_team.subs))
 
     def test_process_subs_list_has_correct_players(self):
         self._load_stats(players=True)
-        self.parser._process_subs_list()
+        self.parser._get_substitution_events()
 
         correa_sub = [sub for sub in self.parser.game.away_team.subs
                       if sub.player_on.name == 'Jose Correa']
@@ -153,7 +153,7 @@ class TestMLSScraper(unittest.TestCase):
 
     def test_process_subs_list_have_correct_minutes(self):
         self._load_stats(players=True)
-        self.parser._process_subs_list()
+        self.parser._get_substitution_events()
 
         correa_sub = [sub for sub in self.parser.game.away_team.subs
                       if sub.player_on.name == 'Jose Correa'][0]
@@ -161,7 +161,7 @@ class TestMLSScraper(unittest.TestCase):
 
     def test_get_bookings(self):
         self._load_stats(players=True)
-        self.parser.get_bookings()
+        self.parser._get_bookings()
         assert self.parser.game.disciplinary_events
         self.assertEqual(len(self.parser.game.disciplinary_events), 3)
         booking = self.parser.game.disciplinary_events[0]
