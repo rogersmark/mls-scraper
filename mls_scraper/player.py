@@ -10,7 +10,7 @@ class BasePlayer(object):
     minutes = 0
     assists = 0
     fouls_commited = 0
-    fs = 0 # Seriously MLS, y u no tell me what this is?
+    fouls_suffered = 0
 
     def __unicode__(self):
         return u'%s %s' % (self.first_name, self.last_name)
@@ -24,7 +24,7 @@ class BasePlayer(object):
         self.number = stats_dict['#']
         self.minutes = stats_dict['MIN']
         self.fouls_commited = stats_dict['FC']
-        self.fs = stats_dict['FS']
+        self.fouls_suffered = stats_dict['FS']
 
         # Subs tend to be missing these numbers
         # Does a subs subclass make sense? Seems unlikely
