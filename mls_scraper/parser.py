@@ -11,7 +11,7 @@ import player
 import events
 from game import GameStatSet
 from formation import Formation
-from mls_scraper import ABBREVIATION_MAP
+from mls_scraper.common import ABBREVIATION_MAP
 
 
 class StatsParser(object):
