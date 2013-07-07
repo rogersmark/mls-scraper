@@ -214,12 +214,18 @@ class TestMLSScraper(unittest.TestCase):
         self._load_stats(players=True)
         self.parser._get_bookings()
         assert self.parser.game.disciplinary_events
-        self.assertEqual(len(self.parser.game.disciplinary_events), 3)
+        self.assertEqual(len(self.parser.game.disciplinary_events), 4)
         booking = self.parser.game.disciplinary_events[0]
         self.assertEqual(booking.reason, 'Off the ball foul')
         self.assertEqual(booking.time, 22)
         self.assertEqual(booking.team.name, 'Chicago Fire')
         self.assertEqual(booking.player.name, 'Dan Paladini')
+
+        bench_booking = self.parser.game.disciplinary_events[3]
+        self.assertEqual(bench_booking.reason, 'Being on the bench')
+        self.assertEqual(bench_booking.time, 90)
+        self.assertEqual(bench_booking.player.name, 'Bench Player')
+        assert bench_booking.player in self.parser.game.away_team.players
 
     def test_get_formations(self):
         ''' Test parsing out the formation information for each team '''

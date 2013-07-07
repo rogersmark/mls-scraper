@@ -375,7 +375,7 @@ class MLSStatsParser(StatsParser):
         ''' Parses a goal dictionary and returns a Goal object '''
         goal = events.Goal()
         team_name = ABBREVIATION_MAP[goal_dict['Club']]
-        goal.time = int(goal_dict['Time'].rstrip("'"))
+        goal.time = int(re.search('\d+', goal_dict['Time']).group())
         if team_name == self.game.home_team.name:
             goal.team = self.game.home_team
         else:
@@ -417,7 +417,7 @@ class MLSStatsParser(StatsParser):
         ''' Parses a booking dictionary and returns a Booking object '''
         booking = events.Booking()
         team_name = ABBREVIATION_MAP[booking_dict['Club']]
-        booking.time = int(booking_dict['Time'].rstrip("'"))
+        booking.time = int(re.search('\d+', booking_dict['Time']).group())
         if team_name == self.game.home_team.name:
             booking.team = self.game.home_team
         else:
@@ -429,6 +429,16 @@ class MLSStatsParser(StatsParser):
             if player_obj.name == player_name:
                 booking.player = player_obj
                 break
+
+        # Sometimes bench warmers get booked
+        if not booking.player:
+            bench_player = player.Player()
+            bench_player.first_name, bench_player.last_name = bench_player.parse_name(
+                booking_dict['Player'])
+            bench_player.position = 'S'
+            bench_player.number = -1
+            booking.player = bench_player
+            booking.team.subs.append(bench_player)
 
         booking.reason = booking_dict['Reason']
         booking.card_color = booking_dict['card_color']
