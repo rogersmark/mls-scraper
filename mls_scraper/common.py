@@ -13,6 +13,7 @@ ABBREVIATION_MAP = {
     'NE': 'New England Revolution',
     'PHI': 'Philadelphia Union',
     'POR': 'Portland Timbers',
+    'PTI': 'Portland Timbers',
     'RSL': 'Real Salt Lake',
     'SEA': 'Seattle Sounders FC',
     'SJ': 'San Jose Earthquakes',
